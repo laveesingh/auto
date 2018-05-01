@@ -1,4 +1,5 @@
 import pyttsx3
+import speech_recognition as sr
 
 
 class Logger:
@@ -39,3 +40,25 @@ class Logger:
 
     def focus(self, msg):
         self.log(msg, color=self.FOCUS)
+
+
+class Receiver:
+
+    def __init__(self):
+        self.recognizer = sr.Recognizer()
+        self.microphone = sr.Microphone()
+        self.logger = Logger(say=True)
+
+    def listen(self):
+        with self.microphone as source:
+            self.recognizer.adjust_for_ambient_noise(source)
+        while True:
+            with self.microphone as source:
+                audio = self.recognizer.listen(source)
+            try:
+                value = self.recognizer.recognize_google(audio)
+                self.logger.success(value)
+            except sr.UnknownValueError:
+                self.logger.alert('Oops, could not catch that')
+            except sr.RequestError:
+                self.logger.alert('unexpected request error')
