@@ -1,5 +1,7 @@
+from fuzzywuzzy import fuzz
 import pyttsx3
 import speech_recognition as sr
+import sys
 
 
 class Logger:
@@ -48,6 +50,7 @@ class Receiver:
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
         self.logger = Logger(say=True)
+        self.resolver = Resolver()
 
     def listen(self):
         with self.microphone as source:
@@ -57,8 +60,36 @@ class Receiver:
                 audio = self.recognizer.listen(source)
             try:
                 value = self.recognizer.recognize_google(audio)
-                self.logger.success(value)
+                self.resolver.resolve(value)
             except sr.UnknownValueError:
                 self.logger.alert('Oops, could not catch that')
             except sr.RequestError:
                 self.logger.alert('unexpected request error')
+
+
+class Resolver:
+
+    response_mapping = {
+        'hello': 'welcome sir!',
+        'hi': 'hello sir!',
+        'auto': 'hello sir! how can i help you',
+        'update': 'you have been lazy lately, sir!'
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.logger = Logger(say=True)
+
+    def resolve(self, msg):
+        if 'exit' in msg:
+            sys.exit(0)
+        matched_key = None
+        match_percentage = 0
+        for key in self.response_mapping:
+            current_match_percentage = fuzz.ratio(key, msg)
+            if current_match_percentage > match_percentage:
+                match_percentage = current_match_percentage
+                matched_key = key
+        if not matched_key:
+            self.logger.alert('I dont understand, could you try again sir?')
+        else:
+            self.logger.info(self.response_mapping[matched_key])
